@@ -8,3 +8,10 @@ services:
                 --innodb_file_format=barracuda
                 --innodb_file_per_table=On
                 --innodb_large_prefix=On
+    environment:
+      MYSQL_ROOT_PASSWORD: m@0dl3ing
+      MYSQL_DATABASE: moodle
+      MOODLE_DOCKER_DBTYPE: mysqli
+      MOODLE_DOCKER_DBCOLLATION: utf8mb4_unicode_ci
+    ports:
+      - "${MOODLE_DOCKER_DB_PORT}:3306/tcp"
