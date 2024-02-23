@@ -3,7 +3,36 @@ name: moodle-docker CI
 on: [push, pull_request]
 
 jobs:
+  integration:
+    name: Integration checks
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checking out moodle-docker
+        uses: actions/checkout@v4
+
+      - name: Checking out moodle
+        uses: actions/checkout@v4
+        with:
+          repository: moodle/moodle
+          path: moodle
+          ref: ${{ matrix.branch }}
+
+      - name: Prepare moodle-docker environment
+        run: |
+          cp config.docker-template.php moodle/config.php
+          tests/integration-setup.sh
+
+      - name: Run moodle-docker tests
+        run: |
+          tests/integration-test.sh
+
+      - name: Stop moodle-docker
+        run: |
+          tests/integration-teardown.sh
+
   PHPUnit:
+    needs: integration
     runs-on: ubuntu-22.04
 
     strategy:
@@ -11,8 +40,8 @@ jobs:
       matrix:
         include:
           # PostgreSQL (highest, lowest php supported)
-          - { branch: master,            php: "8.2", database: pgsql, suite: phpunit-full } # Full run only for master.
-          - { branch: master,            php: "8.0", database: pgsql, suite: phpunit-full }
+          - { branch: main,              php: "8.2", database: pgsql, suite: phpunit-full } # Full run only for main.
+          - { branch: main,              php: "8.1", database: pgsql, suite: phpunit-full }
           - { branch: MOODLE_403_STABLE, php: "8.2", database: pgsql, suite: phpunit } # Other branches, quicker run.
           - { branch: MOODLE_403_STABLE, php: "8.0", database: pgsql, suite: phpunit }
           - { branch: MOODLE_402_STABLE, php: "8.2", database: pgsql, suite: phpunit }
@@ -28,7 +57,7 @@ jobs:
           - { branch: MOODLE_39_STABLE,  php: "7.4", database: pgsql, suite: phpunit }
           - { branch: MOODLE_39_STABLE,  php: "7.2", database: pgsql, suite: phpunit }
           # MariaDB (lowest php supported)
-          - { branch: master,            php: "8.0", database: mariadb, suite: phpunit }
+          - { branch: main,              php: "8.1", database: mariadb, suite: phpunit }
           - { branch: MOODLE_403_STABLE, php: "8.0", database: mariadb, suite: phpunit }
           - { branch: MOODLE_402_STABLE, php: "8.0", database: mariadb, suite: phpunit }
           - { branch: MOODLE_401_STABLE, php: "7.4", database: mariadb, suite: phpunit }
@@ -37,7 +66,7 @@ jobs:
           - { branch: MOODLE_310_STABLE, php: "7.2", database: mariadb, suite: phpunit }
           - { branch: MOODLE_39_STABLE,  php: "7.2", database: mariadb, suite: phpunit }
           # Other databases (highest php supported)
-          - { branch: master,            php: "8.2", database: mssql,  suite: phpunit }
+          - { branch: main,              php: "8.2", database: mssql,  suite: phpunit }
           - { branch: MOODLE_403_STABLE, php: "8.2", database: mssql,  suite: phpunit }
           - { branch: MOODLE_402_STABLE, php: "8.2", database: mssql,  suite: phpunit }
           - { branch: MOODLE_401_STABLE, php: "8.1", database: mssql,  suite: phpunit }
@@ -45,7 +74,7 @@ jobs:
           - { branch: MOODLE_311_STABLE, php: "8.0", database: mssql,  suite: phpunit }
           - { branch: MOODLE_310_STABLE, php: "7.4", database: mssql,  suite: phpunit }
           - { branch: MOODLE_39_STABLE,  php: "7.4", database: mssql,  suite: phpunit }
-          - { branch: master,            php: "8.2", database: mysql,  suite: phpunit }
+          - { branch: main,              php: "8.2", database: mysql,  suite: phpunit }
           - { branch: MOODLE_403_STABLE, php: "8.2", database: mysql,  suite: phpunit }
           - { branch: MOODLE_402_STABLE, php: "8.2", database: mysql,  suite: phpunit }
           - { branch: MOODLE_401_STABLE, php: "8.1", database: mysql,  suite: phpunit }
@@ -53,7 +82,7 @@ jobs:
           - { branch: MOODLE_311_STABLE, php: "8.0", database: mysql,  suite: phpunit }
           - { branch: MOODLE_310_STABLE, php: "7.4", database: mysql,  suite: phpunit }
           - { branch: MOODLE_39_STABLE,  php: "7.4", database: mysql,  suite: phpunit }
-          - { branch: master,            php: "8.2", database: oracle, suite: phpunit }
+          - { branch: main,              php: "8.2", database: oracle, suite: phpunit }
           - { branch: MOODLE_403_STABLE, php: "8.2", database: oracle, suite: phpunit }
           - { branch: MOODLE_402_STABLE, php: "8.2", database: oracle, suite: phpunit }
           - { branch: MOODLE_401_STABLE, php: "8.1", database: oracle, suite: phpunit }
@@ -64,10 +93,10 @@ jobs:
 
     steps:
       - name: Checking out moodle-docker
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Checking out moodle
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: moodle/moodle
           path: moodle
@@ -94,6 +123,7 @@ jobs:
           tests/phpunit-teardown.sh
 
   Behat:
+    needs: integration
     runs-on: ubuntu-22.04
 
     strategy:
@@ -101,8 +131,8 @@ jobs:
       matrix:
         include:
           # PostgreSQL (highest, lowest php supported)
-          - { branch: master,            php: "8.2", database: pgsql, browser: chrome,  suite: behat }
-          - { branch: master,            php: "8.0", database: pgsql, browser: firefox, suite: behat }
+          - { branch: main,              php: "8.2", database: pgsql, browser: chrome,  suite: behat }
+          - { branch: main,              php: "8.1", database: pgsql, browser: firefox, suite: behat }
           - { branch: MOODLE_403_STABLE, php: "8.2", database: pgsql, browser: chrome,  suite: behat }
           - { branch: MOODLE_403_STABLE, php: "8.0", database: pgsql, browser: firefox, suite: behat }
           - { branch: MOODLE_402_STABLE, php: "8.2", database: pgsql, browser: chrome,  suite: behat }
@@ -118,7 +148,7 @@ jobs:
           - { branch: MOODLE_39_STABLE,  php: "7.4", database: pgsql, browser: chrome,  suite: behat }
           - { branch: MOODLE_39_STABLE,  php: "7.2", database: pgsql, browser: firefox, suite: behat }
           # MariaDB (lowest php supported)
-          - { branch: master,            php: "8.0", database: mariadb, browser: chrome,  suite: behat }
+          - { branch: main,              php: "8.1", database: mariadb, browser: chrome,  suite: behat }
           - { branch: MOODLE_403_STABLE, php: "8.0", database: mariadb, browser: firefox, suite: behat }
           - { branch: MOODLE_402_STABLE, php: "8.0", database: mariadb, browser: firefox, suite: behat }
           - { branch: MOODLE_401_STABLE, php: "7.4", database: mariadb, browser: chrome,  suite: behat }
@@ -127,7 +157,7 @@ jobs:
           - { branch: MOODLE_310_STABLE, php: "7.2", database: mariadb, browser: firefox, suite: behat }
           - { branch: MOODLE_39_STABLE,  php: "7.2", database: mariadb, browser: chrome,  suite: behat }
           # Other databases (highest php supported")
-          - { branch: master,            php: "8.2", database: mssql,  browser: firefox, suite: behat }
+          - { branch: main,              php: "8.2", database: mssql,  browser: firefox, suite: behat }
           - { branch: MOODLE_403_STABLE, php: "8.2", database: mssql,  browser: chrome,  suite: behat }
           - { branch: MOODLE_402_STABLE, php: "8.2", database: mssql,  browser: chrome,  suite: behat }
           - { branch: MOODLE_401_STABLE, php: "8.1", database: mssql,  browser: firefox, suite: behat }
@@ -135,7 +165,7 @@ jobs:
           - { branch: MOODLE_311_STABLE, php: "8.0", database: mssql,  browser: firefox, suite: behat }
           - { branch: MOODLE_310_STABLE, php: "7.4", database: mssql,  browser: chrome,  suite: behat }
           - { branch: MOODLE_39_STABLE,  php: "7.4", database: mssql,  browser: firefox, suite: behat }
-          - { branch: master,            php: "8.2", database: mysql,  browser: chrome,  suite: behat }
+          - { branch: main,              php: "8.2", database: mysql,  browser: chrome,  suite: behat }
           - { branch: MOODLE_403_STABLE, php: "8.2", database: mysql,  browser: firefox, suite: behat }
           - { branch: MOODLE_402_STABLE, php: "8.2", database: mysql,  browser: firefox, suite: behat }
           - { branch: MOODLE_401_STABLE, php: "8.1", database: mysql,  browser: chrome,  suite: behat }
@@ -143,7 +173,7 @@ jobs:
           - { branch: MOODLE_311_STABLE, php: "8.0", database: mysql,  browser: chrome,  suite: behat }
           - { branch: MOODLE_310_STABLE, php: "7.4", database: mysql,  browser: firefox, suite: behat }
           - { branch: MOODLE_39_STABLE,  php: "7.4", database: mysql,  browser: chrome,  suite: behat }
-          - { branch: master,            php: "8.2", database: oracle, browser: firefox, suite: behat }
+          - { branch: main,              php: "8.2", database: oracle, browser: firefox, suite: behat }
           - { branch: MOODLE_403_STABLE, php: "8.2", database: oracle, browser: chrome,  suite: behat }
           - { branch: MOODLE_402_STABLE, php: "8.2", database: oracle, browser: chrome,  suite: behat }
           - { branch: MOODLE_401_STABLE, php: "8.1", database: oracle, browser: firefox, suite: behat }
@@ -154,10 +184,10 @@ jobs:
 
     steps:
       - name: Checking out moodle-docker
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Checking out moodle
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: moodle/moodle
           path: moodle
@@ -185,6 +215,7 @@ jobs:
           tests/behat-teardown.sh
 
   App:
+    needs: integration
     runs-on: ubuntu-22.04
 
     strategy:
@@ -214,10 +245,10 @@ jobs:
 
     steps:
       - name: Checking out moodle-docker
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Checking out moodle
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: moodle/moodle
           path: moodle
