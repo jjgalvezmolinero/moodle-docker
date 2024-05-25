@@ -58,7 +58,13 @@ class MainApp:
 
     def configurar_oracle(self):
         try:
-            # Example configuration command; replace with actual commands needed for your setup
+            os.system('sudo apt install -y unzip')
+            os.system('wget https://download.oracle.com/otn_software/linux/instantclient/2112000/el9/instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip -O ./oracle/oracle1.zip')
+            os.system('wget https://download.oracle.com/otn_software/linux/instantclient/2112000/el9/instantclient-sqlplus-linux.x64-21.12.0.0.0dbru.el9.zip -O ./oracle/oracle2.zip')
+            os.system('wget https://download.oracle.com/otn_software/linux/instantclient/2112000/el9/instantclient-sdk-linux.x64-21.12.0.0.0dbru.el9.zip -O ./oracle/oracle3.zip')
+            os.system('unzip ./oracle/oracle1.zip -d ./oracle/')
+            os.system('unzip ./oracle/oracle2.zip -d ./oracle/')
+            os.system('unzip ./oracle/oracle3.zip -d ./oracle/')
             subprocess.run(['sudo', 'cp', '-r', 'oracle', '/opt/'], check=True)
             subprocess.run(['sudo', 'apt', 'update', '&&', 'sudo', 'apt', 'install', '-y', 'libaio1'], check=True)
             os.system('sudo bash -c "echo /opt/oracle/instantclient_21_12 > /etc/ld.so.conf.d/oracle-instantclient.conf"')
