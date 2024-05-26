@@ -18,6 +18,7 @@ class MoodleDockerConfigurator:
         self.wwwroot_var = tk.StringVar()
         self.db_port_var = tk.StringVar()
         self.server_port_var = tk.StringVar()
+        self.db_name = tk.StringVar()
         self.db_type_var = tk.StringVar(value='mysql')  # Default DB
 
         self.selected_env_file = None
@@ -27,14 +28,14 @@ class MoodleDockerConfigurator:
     def create_widgets(self):
         entries = {
             "Versión de PHP": self.php_version_var,
-            "Nombre del Docker": self.docker_name_var,
             "Nombre del Proyecto": self.project_name_var,
             "Ruta de la Aplicación": self.wwwroot_var,
             "Moodle Data": self.app_path_var,
             "Host Web": self.web_host_var,
+            "Nombre de la DB": self.db_name,
+            "Tipo de DB": self.db_type_var,
             "Puerto de la DB": self.db_port_var,
             "Puerto del Servidor": self.server_port_var,
-            "Tipo de DB": self.db_type_var,
         }
 
         for label, var in entries.items():
@@ -63,6 +64,7 @@ class MoodleDockerConfigurator:
             f"MOODLE_DOCKER_DB_PORT={self.db_port_var.get()}\n"
             f"MOODLE_DOCKER_SERVER_PORT={self.server_port_var.get()}\n"
             f"MOODLE_DOCKER_DB={self.db_type_var.get()}\n"
+            f"MOODLE_DOCKER_DBNAME={self.db_name.get()}\n"
         )
         
         file_path = filedialog.asksaveasfilename(
@@ -101,6 +103,8 @@ class MoodleDockerConfigurator:
                             self.server_port_var.set(value)
                         elif key == 'MOODLE_DOCKER_DB':
                             self.db_type_var.set(value)
+                        elif key == 'MOODLE_DOCKER_DBNAME':
+                            self.docker_name_var.set(value)
             except FileNotFoundError:
                 messagebox.showerror("Error", "No se ha encontrado el fichero .env")
 
@@ -118,6 +122,20 @@ class MoodleDockerConfigurator:
 
     def create_data_base_type_select(self):
         self.db_type_var.set('mysql')
+        self.db_port_var.set('3306')
+        self.server_port_var.set('8000')
         db_type_select = ttk.Combobox(self.app, textvariable=self.db_type_var)
         db_type_select['values'] = ('mysql', 'pgsql', 'mariadb', 'oracle')
         db_type_select.pack(fill='x')
+        db_type_select.bind("<<ComboboxSelected>>", self.update_db_port)
+    
+    def update_db_port(self, event):
+        db_type = self.db_type_var.get()
+        if db_type == 'mysql':
+            self.db_port_var.set('3306')
+        elif db_type == 'pgsql':
+            self.db_port_var.set('5432')
+        elif db_type == 'mariadb':
+            self.db_port_var.set('3306')
+        elif db_type == 'oracle':
+            self.db_port_var.set('1521')
