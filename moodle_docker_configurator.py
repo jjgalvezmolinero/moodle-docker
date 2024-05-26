@@ -107,8 +107,9 @@ class MoodleDockerConfigurator:
     def launch_moodle(self):
         if self.selected_env_file:
             try:
-                shutil.copyfile(self.selected_env_file, 'moodle.env')
-                os.system("sudo ./bin/moodle-docker-compose up -d")
+                shutil.copyfile(self.selected_env_file, 'moodle-docker/moodle.env')
+                # os.system("cd moodle-docker")
+                os.system("sudo ./moodle-docker/bin/moodle-docker-compose up -d")
                 messagebox.showinfo("Información", "Moodle se está iniciando...")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to launch Moodle: {e}")

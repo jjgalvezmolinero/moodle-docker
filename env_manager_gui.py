@@ -99,9 +99,9 @@ class EnvManager:
     def launch_file(self):
         file_path = self.selected_file_path.get()
         if os.path.isfile(file_path):
-            shutil.copyfile(file_path, 'moodle.env')
+            shutil.copyfile(file_path, './moodle-docker/moodle.env')
             try:
-                subprocess.run(['sudo', './bin/moodle-docker-compose', 'up', '-d'], check=True)
+                subprocess.run(['sudo', './moodle-docker/bin/moodle-docker-compose', 'up', '-d'], check=True)
                 messagebox.showinfo("Información", f"{os.path.basename(file_path)} se está ejecutando...")
             except subprocess.CalledProcessError as e:
                 messagebox.showerror("Error", f"Failed to launch: {e}")
