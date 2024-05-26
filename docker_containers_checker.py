@@ -2,7 +2,8 @@ import subprocess
 import json
 from collections import defaultdict
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
+import os
 
 class DockerContainersManager:
     def __init__(self, root):
@@ -37,16 +38,80 @@ class DockerContainersManager:
 
         # Crear el menú de acciones
         self.actions_menu = tk.Menu(self.root, tearoff=0)
-        self.actions_menu.add_command(label="Iniciar", command=lambda: self.manage_container('start'))
-        self.actions_menu.add_command(label="Detener", command=lambda: self.manage_container('stop'))
-        self.actions_menu.add_command(label="Reiniciar", command=lambda: self.manage_container('restart'))
-        self.actions_menu.add_command(label="Eliminar", command=lambda: self.manage_container('rm'))
-
+        self.actions_menu.add_command(label="Habilitar phpunit", command=lambda: self.run_command_in_container('enable_phpunit'))
+        self.actions_menu.add_command(label="Habilitar behat ", command=lambda: self.run_command_in_container('enable_behat'))
+        self.actions_menu.add_command(label="Habilitar xdebug", command=lambda: self.run_command_in_container('enable_xdebug'))
+        self.actions_menu.add_command(label="Ejecutar comando", command=lambda: self.run_command_in_container('execute_command'))
+        
         # Cargar contenedores inicialmente
         self.refresh_containers()
 
         # Vincular el evento de clic fuera del menú para cerrarlo
         self.root.bind("<Button-1>", self.hide_actions_menu)
+
+    def run_command_in_container(self, action):
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un contenedor para ejecutar el comando.")
+            return
+
+        selected_container = self.tree.item(selected_item[0], 'text')
+        if not selected_container:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un contenedor válido.")
+            return
+        
+        try:
+            if(action == 'enable_phpunit'):
+                # Habilitamos phpunit
+                command = 'php admin/tool/phpunit/cli/init.php'
+                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+                # Instalamos decoradores
+                command = 'php admin/tool/phpunit/cli/util.php --buildcomponentconfigs'
+                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+            elif(action == 'enable_behat'):
+                # Habilitamos behat
+                command = 'php admin/tool/behat/cli/init.php'
+                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+            elif(action == 'enable_xdebug'):
+                # Pedir si la versión de php es la 7.4 o una superior
+                # versionPHP = simpledialog.confirm("Versión de PHP", "¿La versión de PHP es inferior a la 8.0?")
+                versionPHP = messagebox.askyesno("Versión de PHP", "¿La versión de PHP es inferior a la 8.0?")
+
+                if versionPHP:
+                    xdebug_version = 'xdebug-3.1.6'
+                else:
+                    xdebug_version = 'xdebug-3.3.2'
+
+                # Habilitamos xdebug
+                command = 'pecl install ' + xdebug_version
+                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+                command = """
+                    read -r -d '' conf <<'EOF'
+                    ; Settings for Xdebug Docker configuration
+                    xdebug.mode = debug
+                    xdebug.client_host = host.docker.internal
+                    ; Some IDEs (eg PHPSTORM, VSCODE) may require configuring an IDE key, uncomment if needed
+                    ; xdebug.idekey=MY_FAV_IDE_KEY
+                    EOF
+                    echo '$conf' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+                """
+                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+                command = 'docker-php-ext-enable xdebug'
+                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+                os.system("sudo ufw allow 9003")
+                self.manage_container('restart')
+            elif(action == 'execute_command'):
+                command = simpledialog.askstring("Ejecutar Comando", f"Introduzca el comando para ejecutar en el contenedor {selected_container}:")
+                if not command:
+                    messagebox.showwarning("Advertencia", "Por favor, introduzca un comando válido.")
+                    return
+                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+
+
+            messagebox.showinfo("Éxito", f"Habilitado phpunit con éxito en el contenedor '{selected_container}'")
+            self.refresh_containers()
+        except subprocess.CalledProcessError as e:
+            messagebox.showerror("Error", f"Error al ejecutar el comando '{command}' en el contenedor '{selected_container}': {e}")
 
     def get_docker_containers(self):
         try:
