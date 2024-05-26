@@ -3,3 +3,4 @@ oracle/
 variables/
 moodle-docker/moodle.env
 .vscode/
+moodle-docker/moodle.env
