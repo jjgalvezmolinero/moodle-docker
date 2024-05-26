@@ -5,6 +5,7 @@ import os
 from moodle_docker_configurator import MoodleDockerConfigurator
 from env_manager_gui import EnvManager
 from docker_containers_checker import DockerContainersManager
+from instalaciones import Instalaciones
 
 class MainApp:
     def __init__(self, root):
@@ -15,7 +16,7 @@ class MainApp:
         self.center_window(self.root, 300, 500)
         
         # Add logo
-        self.logo = PhotoImage(file="./img/logo_negro.png")  # Change to your logo file path
+        self.logo = PhotoImage(file="./img/logo_app.png")  # Change to your logo file path
         self.logo_label = tk.Label(self.root, image=self.logo)
         self.logo_label.grid(row=0, column=0, columnspan=3, pady=20)
         
@@ -35,14 +36,16 @@ class MainApp:
         button_configurator = tk.Button(button_frame, text="Configurador de Moodle Docker", command=self.open_configurator, width=30)
         button_env_manager = tk.Button(button_frame, text="Gestión .env", command=self.open_env_manager, width=30)
         button_docker_manager = tk.Button(button_frame, text="Gestionar Docker", command=self.gestionar_docker, width=30)
-        button_oracle_client = tk.Button(button_frame, text="Configurar Cliente Oracle", command=self.configurar_oracle, width=30)
-        button_install_docker = tk.Button(button_frame, text="Instalar Docker", command=self.instalar_docker, width=30)
+        button_install = tk.Button(button_frame, text="Instalaciones", command=self.open_instalaciones, width=30)
         
         button_configurator.grid(row=0, column=0, padx=10, pady=5)
         button_env_manager.grid(row=1, column=0, padx=10, pady=5)
         button_docker_manager.grid(row=2, column=0, padx=10, pady=5)
-        button_oracle_client.grid(row=3, column=0, padx=10, pady=5)
-        button_install_docker.grid(row=4, column=0, padx=10, pady=5)
+        button_install.grid(row=3, column=0, padx=10, pady=5)
+
+    def open_instalaciones(self):
+        instalaciones_window = tk.Toplevel(self.root)
+        Instalaciones(instalaciones_window)
 
     def open_configurator(self):
         config_window = tk.Toplevel(self.root)
@@ -55,40 +58,6 @@ class MainApp:
     def gestionar_docker(self):
         docker_window = tk.Toplevel(self.root)
         DockerContainersManager(docker_window)
-
-    def configurar_oracle(self):
-        try:
-            os.system('sudo apt install -y unzip')
-            os.system('wget https://download.oracle.com/otn_software/linux/instantclient/2112000/el9/instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip -O ./oracle/oracle1.zip')
-            os.system('wget https://download.oracle.com/otn_software/linux/instantclient/2112000/el9/instantclient-sqlplus-linux.x64-21.12.0.0.0dbru.el9.zip -O ./oracle/oracle2.zip')
-            os.system('wget https://download.oracle.com/otn_software/linux/instantclient/2112000/el9/instantclient-sdk-linux.x64-21.12.0.0.0dbru.el9.zip -O ./oracle/oracle3.zip')
-            os.system('unzip ./oracle/oracle1.zip -d ./oracle/')
-            os.system('unzip ./oracle/oracle2.zip -d ./oracle/')
-            os.system('unzip ./oracle/oracle3.zip -d ./oracle/')
-            subprocess.run(['sudo', 'cp', '-r', 'oracle', '/opt/'], check=True)
-            subprocess.run(['sudo', 'apt', 'update', '&&', 'sudo', 'apt', 'install', '-y', 'libaio1'], check=True)
-            os.system('sudo bash -c "echo /opt/oracle/instantclient_21_12 > /etc/ld.so.conf.d/oracle-instantclient.conf"')
-            os.system('sudo ldconfig')
-            messagebox.showinfo("Success", "Oracle client configured successfully.")
-        except subprocess.CalledProcessError as e:
-            messagebox.showerror("Error", f"Failed to configure Oracle client: {e}")
-        except Exception as e:
-            messagebox.showerror("Error", f"An unexpected error occurred: {e}")
-
-    def instalar_docker(self):
-        try:
-            subprocess.run(['sudo', 'apt-get', 'update'], check=True)
-            subprocess.run(['sudo', 'apt-get', 'install', '-y', 'apt-transport-https', 'ca-certificates', 'curl', 'gnupg-agent', 'software-properties-common'], check=True)
-            subprocess.run(['curl', '-fsSL', 'https://download.docker.com/linux/ubuntu/gpg', '|', 'sudo', 'apt-key', 'add', '-'], check=True)
-            subprocess.run(['sudo', 'add-apt-repository', 'deb', '[arch=amd64]', 'https://download.docker.com/linux/ubuntu', '$(lsb_release', '-cs)', 'stable'], check=True)
-            subprocess.run(['sudo', 'apt-get', 'update'], check=True)
-            subprocess.run(['sudo', 'apt-get', 'install', '-y', 'docker-ce', 'docker-ce-cli', 'containerd.io'], check=True)
-            subprocess.run(['sudo', 'usermod', '-aG', 'docker', '$USER'], check=True)
-            messagebox.showinfo("Success", "Docker installed successfully. Please log out and log back in for the changes to take effect.")
-        except subprocess.CalledProcessError as e:
-            messagebox.showerror("Error", f"Failed to install Docker: {e}")
-        except Exception as e:
-            messagebox.showerror("Error", f"An unexpected error occurred: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
