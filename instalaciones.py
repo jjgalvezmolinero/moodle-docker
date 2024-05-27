@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import messagebox
+import subprocess
 
 class Instalaciones:
     def __init__(self, root):
