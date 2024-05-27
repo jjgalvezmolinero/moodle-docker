@@ -4,12 +4,13 @@ from collections import defaultdict
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import os
+from docker_console import DockerConsole
 
 class DockerContainersManager:
     def __init__(self, root):
         self.root = root
         self.root.title("Gestor de Contenedores Docker")
-        self.root.geometry('800x600+100+100')
+        self.root.geometry('800x600')
 
         # Treeview para mostrar contenedores agrupados
         self.tree = ttk.Treeview(self.root, columns=('Estado'), show='tree headings')
@@ -38,10 +39,10 @@ class DockerContainersManager:
 
         # Crear el menú de acciones
         self.actions_menu = tk.Menu(self.root, tearoff=0)
-        self.actions_menu.add_command(label="Habilitar phpunit", command=lambda: self.run_command_in_container('enable_phpunit'))
-        self.actions_menu.add_command(label="Habilitar behat ", command=lambda: self.run_command_in_container('enable_behat'))
-        self.actions_menu.add_command(label="Habilitar xdebug", command=lambda: self.run_command_in_container('enable_xdebug'))
-        self.actions_menu.add_command(label="Ejecutar comando", command=lambda: self.run_command_in_container('execute_command'))
+        self.actions_menu.add_command(label="Habilitar phpunit", command=lambda: self.habilitar_entornos('enable_phpunit'))
+        self.actions_menu.add_command(label="Habilitar behat ", command=lambda: self.habilitar_entornos('enable_behat'))
+        self.actions_menu.add_command(label="Habilitar xdebug", command=lambda: self.habilitar_entornos('enable_xdebug'))
+        self.actions_menu.add_command(label="Abrir consola", command=lambda: self.run_command_in_container())
         
         # Cargar contenedores inicialmente
         self.refresh_containers()
@@ -49,7 +50,20 @@ class DockerContainersManager:
         # Vincular el evento de clic fuera del menú para cerrarlo
         self.root.bind("<Button-1>", self.hide_actions_menu)
 
-    def run_command_in_container(self, action):
+    def run_command_in_container(self):
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un contenedor para abrir la consola.")
+            return
+
+        selected_container = self.tree.item(selected_item[0], 'text')
+        if not selected_container:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un contenedor válido.")
+            return
+
+        DockerConsole(self.root, selected_container)
+
+    def habilitar_entornos(self, action):
         selected_item = self.tree.selection()
         if not selected_item:
             messagebox.showwarning("Advertencia", "Por favor, seleccione un contenedor para ejecutar el comando.")
@@ -80,23 +94,30 @@ class DockerContainersManager:
                 if versionPHP:
                     xdebug_version = 'xdebug-3.1.6'
                 else:
-                    xdebug_version = 'xdebug-3.3.2'
+                    xdebug_version = 'xdebug'
 
                 # Habilitamos xdebug
                 command = 'pecl install ' + xdebug_version
                 subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
-                command = """
-                    read -r -d '' conf <<'EOF'
-                    ; Settings for Xdebug Docker configuration
-                    xdebug.mode = debug
-                    xdebug.client_host = host.docker.internal
-                    ; Some IDEs (eg PHPSTORM, VSCODE) may require configuring an IDE key, uncomment if needed
-                    ; xdebug.idekey=MY_FAV_IDE_KEY
-                    EOF
-                    echo '$conf' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
-                """
-                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+                # subprocess.run(['docker', 'exec', selected_container, 'touch /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini', 'xdebug'], check=True)
+                self.ejecutar_comando(selected_container, "echo 'xdebug.mode=debug' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini")
+                self.ejecutar_comando(selected_container, "echo 'xdebug.client_host=host.docker.internal' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini")
+                self.ejecutar_comando(selected_container, "echo 'xdebug.idekey=VSCODE' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini")
+                self.ejecutar_comando(selected_container, "echo 'zend_extension=xdebug' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini")
+                self.ejecutar_comando(selected_container, "echo 'xdebug.start_with_request=yes' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini")
+                self.ejecutar_comando(selected_container, "echo 'xdebug.client_port=9003' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini")
+                self.ejecutar_comando(selected_container, "echo 'output_buffering=off' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini")
+                self.ejecutar_comando(selected_container, "echo 'xdebug.log=/var/log/xdebug.log' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini")
+                # subprocess.run(['docker', 'exec', selected_container] + "echo 'xdebug.client_host=host.docker.internal' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini", check=True)
+                # subprocess.run(['docker', 'exec', selected_container] + "echo 'xdebug.idekey=VSCODE' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini", check=True)
+                # subprocess.run(['docker', 'exec', selected_container] + "echo 'zend_extension=xdebug' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini", check=True)
+                # subprocess.run(['docker', 'exec', selected_container] + "echo 'xdebug.start_with_request=yes' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini", check=True)
+                # subprocess.run(['docker', 'exec', selected_container] + "echo 'xdebug.client_port=9003' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini", check=True)
+                # subprocess.run(['docker', 'exec', selected_container] + "echo 'output_buffering=off' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini", check=True)
+                # subprocess.run(['docker', 'exec', selected_container] + "echo 'xdebug.log=/var/log/xdebug.log' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini", check=True)
                 command = 'docker-php-ext-enable xdebug'
+                subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
+                command = "sed -i 's/^; zend_extension=/zend_extension=/' /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini"
                 subprocess.run(['docker', 'exec', selected_container] + command.split(), check=True)
                 os.system("sudo ufw allow 9003")
                 self.manage_container('restart')
@@ -112,6 +133,9 @@ class DockerContainersManager:
             self.refresh_containers()
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Error", f"Error al ejecutar el comando '{command}' en el contenedor '{selected_container}': {e}")
+
+    def ejecutar_comando(self, selected_container, action):
+        subprocess.run(['docker', 'exec', selected_container]+action.split(), check=True)  
 
     def get_docker_containers(self):
         try:
