@@ -16,7 +16,7 @@ class EnvManager:
         
         self.create_widgets()
 
-    def copy_config_file(self):        
+    def copy_launch_file(self):
         content = self.file_content.get(1.0, tk.END)
         # Buscar la línea que contiene MOODLE_DOCKER_WWWROOT
         lines = content.splitlines()
@@ -29,17 +29,41 @@ class EnvManager:
             messagebox.showerror("Error", "No se encontró la variable MOODLE_DOCKER_WWWROOT en el archivo seleccionado.")
             return
         
-        example_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'moodle-docker/config.docker-template.php')
-        destination = os.path.join(ruta_proyecto, 'config.php')
-
+        source = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.vscode')
+        
         if not os.path.exists(ruta_proyecto):
             messagebox.showerror("Error", "No existe la ruta del proyecto "+ruta_proyecto)
             return
         
-        if shutil.copy(example_config_path, destination):
-            messagebox.showinfo("Éxito", "Archivo config.php copiado exitosamente.")
+        self.copy_file(source, ruta_proyecto)
+
+    def copy_config_file(self):
+        content = self.file_content.get(1.0, tk.END)
+        # Buscar la línea que contiene MOODLE_DOCKER_WWWROOT
+        lines = content.splitlines()
+        ruta_proyecto = ''
+        for line in lines:
+            if line.startswith("MOODLE_DOCKER_WWWROOT"):
+                ruta_proyecto = line.split("=", 1)[1]
+                continue
+        if not ruta_proyecto:
+            messagebox.showerror("Error", "No se encontró la variable MOODLE_DOCKER_WWWROOT en el archivo seleccionado.")
+            return
+        
+        source = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.docker-template.php')
+        destination = os.path.join(ruta_proyecto, 'config.php')
+        
+        if not os.path.exists(ruta_proyecto):
+            messagebox.showerror("Error", "No existe la ruta del proyecto "+ruta_proyecto)
+            return
+        
+        self.copy_file(source, destination)
+
+    def copy_file(self, source, destination): 
+        if shutil.copy(source, destination):
+            messagebox.showinfo("Éxito", "Copiado exitosamente.")
         else:
-            messagebox.showerror("Error", "No se pudo copiar el archivo config.php.")
+            messagebox.showerror("Error", "No se pudo copiar.")
 
     def create_widgets(self):
         tk.Label(self.app, text="Archivos .env en las carpetas:").pack(fill='x')
@@ -58,6 +82,7 @@ class EnvManager:
         tk.Button(button_frame, text="Duplicar Archivo", command=self.duplicate_file).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="Lanzar Archivo", command=self.launch_file).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="Copiar config", command=self.copy_config_file).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Copiar launch.json", command=self.copy_config_file).pack(side=tk.LEFT, padx=5)
         
         tk.Label(self.app, text="Contenido del archivo:").pack(fill='x')
         self.file_content.pack(fill='both', expand=True)
