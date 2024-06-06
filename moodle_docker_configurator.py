@@ -70,7 +70,8 @@ class MoodleDockerConfigurator:
         file_path = filedialog.asksaveasfilename(
             title="Guardar configuración como",
             defaultextension=".env",
-            filetypes=[("Env files", "*.env")]
+            filetypes=[("Env files", "*.env")],
+            initialdir ='variables'
         )
         if file_path:
             with open(file_path, 'w') as file:
@@ -80,7 +81,8 @@ class MoodleDockerConfigurator:
     def cargar_datos_del_fichero(self):
         self.selected_env_file = filedialog.askopenfilename(
             title="Cargar configuración",
-            filetypes=[("Env files", "*.env")]
+            filetypes=[("Env files", "*.env")],
+            initialdir ='variables'
         )
         if self.selected_env_file:
             try:
